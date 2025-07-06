@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation // Required for Bundle and NSDictionary
 
 // Define a struct for messages to provide a unique ID for ForEach
 struct Message: Identifiable, Hashable {
@@ -11,9 +12,30 @@ struct ContentView: View {
     @State private var messages: [Message] = [] // Changed to array of Message structs
     @State private var conversationHistory: [[String: Any]] = [] // For Gemini's context
 
-    // IMPORTANT: Replace "YOUR_GEMINI_API_KEY" with your actual API key.
-    private let geminiClient = GeminiAPIClient(apiKey: "AIzaSyAqiug0s7LvcQBlRm2jNJpNqLx1fD58Opc")
+    private let geminiClient: GeminiAPIClient
     private let shellExecutor = ShellCommandExecutor()
+
+    // Define a system prompt for persistent context
+    private let systemPrompt: String = "You are Sidekick, a helpful macOS assistant. You can answer questions and execute shell commands on the user's machine using the 'execute_shell_command' tool. When asked to perform a task that requires system interaction, use the tool. Be concise and helpful."
+
+    // Initialize geminiClient by loading API key from Secrets.plist
+    init() {
+        // SwiftUI requires @State properties to be initialized before self is used.
+        // We use _messages and _conversationHistory to initialize the underlying State wrappers.
+        _messages = State(initialValue: [])
+        _conversationHistory = State(initialValue: [])
+
+        if let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path) as? [String: AnyObject],
+           let apiKey = dict["GeminiAPIKey"] as? String {
+            self.geminiClient = GeminiAPIClient(apiKey: apiKey)
+        } else {
+            fatalError("GeminiAPIKey not found in Secrets.plist. Please create Secrets.plist and add your key.")
+        }
+
+        // Initialize conversation history with the system prompt
+        _conversationHistory.wrappedValue.append(["role": "user", "parts": [["text": systemPrompt]]])
+    }
 
     var body: some View {
         VStack {
@@ -41,6 +63,12 @@ struct ContentView: View {
                 }
             }
             .padding()
+
+            // New Chat Button
+            Button("New Chat") {
+                resetChat()
+            }
+            .padding(.bottom, 5)
         }
         .frame(width: 400, height: 500)
     }
@@ -154,5 +182,12 @@ struct ContentView: View {
             messages.append(Message(content: "Sidekick Error: \(error.localizedDescription)")) // Create Message object
             print("Gemini API Error: \(error)")
         }
+    }
+
+    private func resetChat() {
+        messages = [] // Clear displayed messages
+        conversationHistory = [] // Clear Gemini's history
+        // Re-add the system prompt to start a fresh conversation
+        conversationHistory.append(["role": "user", "parts": [["text": systemPrompt]]])
     }
 }
