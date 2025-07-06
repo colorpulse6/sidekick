@@ -1,0 +1,26 @@
+
+# Xcode
+.DS_Store
+*.xcodeproj
+xcuserdata/
+DerivedData/
+build/
+*.xcworkspace
+
+# Swift Package Manager
+.build/
+
+# Dependencies
+Pods/
+Carthage/Build/
+
+# API Keys (CRITICAL: DO NOT COMMIT YOUR API KEY)
+# This line is a placeholder. Your actual API key will be in ContentView.swift
+# but we will ensure it's not committed by using a placeholder value.
+# If you were to externalize it to a separate file, you'd list that file here.
+
+# Logs
+*.log
+
+# Other
+.swiftpm/
